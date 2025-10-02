@@ -3,7 +3,7 @@ Tests for security groups resource module.
 """
 
 import sys
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 from botocore.exceptions import ClientError
@@ -52,13 +52,17 @@ class TestSecurityGroups:
 
         mock_client.describe_security_groups.return_value = mock_response
 
-        # Call the function
-        result = get_raw_data(mock_session, "us-east-1")
+        with patch(
+            "resources.security_groups._collect_security_group_usage",
+            return_value={"sg-12345678": ["EC2Instance:i-001"]},
+        ):
+            result = get_raw_data(mock_session, "us-east-1")
 
         # Assertions
         assert len(result) == 1
         assert result[0]["GroupId"] == "sg-12345678"
         assert result[0]["HasAnyOpenInbound"] is True
+        assert result[0]["AttachedResources"] == ["EC2Instance:i-001"]
         mock_client.describe_security_groups.assert_called_once()
 
     def test_get_raw_data_ipv6_any_open(self):
@@ -92,8 +96,11 @@ class TestSecurityGroups:
 
         mock_client.describe_security_groups.return_value = mock_response
 
-        # Call the function
-        result = get_raw_data(mock_session, "us-east-1")
+        with patch(
+            "resources.security_groups._collect_security_group_usage",
+            return_value={"sg-ipv6-open": []},
+        ):
+            result = get_raw_data(mock_session, "us-east-1")
 
         # Assertions
         assert len(result) == 1
@@ -131,8 +138,11 @@ class TestSecurityGroups:
 
         mock_client.describe_security_groups.return_value = mock_response
 
-        # Call the function
-        result = get_raw_data(mock_session, "us-east-1")
+        with patch(
+            "resources.security_groups._collect_security_group_usage",
+            return_value={"sg-87654321": []},
+        ):
+            result = get_raw_data(mock_session, "us-east-1")
 
         # Assertions
         assert len(result) == 1
@@ -181,8 +191,14 @@ class TestSecurityGroups:
             second_response,
         ]
 
-        # Call the function
-        result = get_raw_data(mock_session, "us-east-1")
+        with patch(
+            "resources.security_groups._collect_security_group_usage",
+            return_value={
+                "sg-page1": ["EC2Instance:i-page1"],
+                "sg-page2": [],
+            },
+        ):
+            result = get_raw_data(mock_session, "us-east-1")
 
         # Assertions
         assert len(result) == 2
@@ -203,8 +219,11 @@ class TestSecurityGroups:
             "DescribeSecurityGroups",
         )
 
-        # Call the function
-        result = get_raw_data(mock_session, "us-east-1")
+        with patch(
+            "resources.security_groups._collect_security_group_usage",
+            return_value={},
+        ):
+            result = get_raw_data(mock_session, "us-east-1")
 
         # Assertions
         assert result == []
@@ -219,8 +238,11 @@ class TestSecurityGroups:
         # Mock unexpected error
         mock_client.describe_security_groups.side_effect = Exception("Unexpected error")
 
-        # Call the function
-        result = get_raw_data(mock_session, "us-east-1")
+        with patch(
+            "resources.security_groups._collect_security_group_usage",
+            return_value={},
+        ):
+            result = get_raw_data(mock_session, "us-east-1")
 
         # Assertions
         assert result == []
@@ -271,6 +293,7 @@ class TestSecurityGroups:
                     {"Key": "Name", "Value": "test-sg"},
                     {"Key": "Environment", "Value": "dev"},
                 ],
+                "AttachedResources": ["EC2Instance:i-001"],
             }
         ]
 
@@ -284,6 +307,8 @@ class TestSecurityGroups:
         assert result.iloc[0]["Description"] == "Test security group"
         assert result.iloc[0]["AnyOpenInbound"] == "⚠️ YES"
         assert "Name=test-sg, Environment=dev" in result.iloc[0]["Tags"]
+        assert result.iloc[0]["AttachedResources"] == ["EC2Instance:i-001"]
+        assert result.iloc[0]["AttachedResourceCount"] == 1
 
         # Check inbound rules formatting
         inbound_rules = result.iloc[0]["InboundRules"]
@@ -332,6 +357,7 @@ class TestSecurityGroups:
                     }
                 ],
                 "Tags": [],
+                "AttachedResources": [],
             }
         ]
 
@@ -368,6 +394,7 @@ class TestSecurityGroups:
                 ],
                 "IpPermissionsEgress": [],
                 "Tags": [],
+                "AttachedResources": [],
             }
         ]
 
@@ -390,6 +417,7 @@ class TestSecurityGroups:
                 "IpPermissions": [],
                 "IpPermissionsEgress": [],
                 "Tags": [],
+                "AttachedResources": [],
             }
         ]
 
@@ -423,6 +451,7 @@ class TestSecurityGroups:
         assert result.iloc[0]["VpcId"] == ""
         assert result.iloc[0]["Description"] == ""
         assert result.iloc[0]["Tags"] == ""
+        assert result.iloc[0]["AttachedResourceCount"] == 0
 
     def test_get_filtered_data_empty_tags(self):
         """Test filtering with empty tags."""

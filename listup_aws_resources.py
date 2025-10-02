@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 from datetime import date, datetime, timezone
+from typing import Any
 
 import boto3
 import pandas as pd
@@ -71,6 +72,61 @@ class DateTimeEncoder(json.JSONEncoder):
         if isinstance(obj, datetime | date):
             return obj.isoformat()
         return super().default(obj)
+
+
+def _stringify_csv_value(value: Any) -> str:
+    """CSV에 기록하기 위해 값을 문자열로 변환한다."""
+
+    if value is None:
+        return ""
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False)
+    return str(value)
+
+
+def _prepare_csv_record(
+    region: str, resource_type: str, record: dict[str, Any]
+) -> dict[str, Any]:
+    """CSV 행 생성을 위한 레코드를 구성한다."""
+
+    row: dict[str, Any] = {"Region": region, "ResourceType": resource_type}
+    for key, value in record.items():
+        column = key
+        if key == "Region":
+            column = "RecordRegion"
+        elif key == "ResourceType":
+            column = "RecordResourceType"
+
+        if isinstance(value, list):
+            row[column] = "; ".join(_stringify_csv_value(item) for item in value)
+        elif isinstance(value, dict):
+            row[column] = json.dumps(value, ensure_ascii=False)
+        else:
+            row[column] = _stringify_csv_value(value)
+    return row
+
+
+def _build_csv_rows(all_filtered_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """전체 필터링 데이터에서 CSV 행 목록을 생성한다."""
+
+    rows: list[dict[str, Any]] = []
+    for region, region_data in all_filtered_data.items():
+        if isinstance(region_data, dict):
+            for resource_type, records in region_data.items():
+                for record in records:
+                    rows.append(
+                        _prepare_csv_record(
+                            region=region, resource_type=resource_type, record=record
+                        )
+                    )
+        elif isinstance(region_data, list):
+            for record in region_data:
+                rows.append(
+                    _prepare_csv_record(
+                        region="Global", resource_type=region, record=record
+                    )
+                )
+    return rows
 
 
 def print_security_groups_analysis(all_filtered_data: dict):
@@ -260,16 +316,18 @@ def main():
         print("📋 모든 리소스를 조회합니다.")
     print()
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")[:-3]
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
     current_dir = os.path.dirname(__file__)
     data_dir = os.path.join(current_dir, "data")
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
+    os.makedirs(data_dir, exist_ok=True)
+
+    output_dir = os.path.join(data_dir, timestamp)
+    os.makedirs(output_dir, exist_ok=True)
 
     all_raw_data = {}
     all_filtered_data = {}  # 필터링된 데이터를 저장할 딕셔너리
-    excel_path = os.path.join(data_dir, f"aws_resources_{timestamp}.xlsx")
+    excel_path = os.path.join(output_dir, "aws_resources.xlsx")
     writer = pd.ExcelWriter(excel_path, engine="openpyxl")
 
     for region in regions:
@@ -658,21 +716,28 @@ def main():
     writer.close()
     print(f"\n📊 Excel 파일 생성 완료: {excel_path}")
 
-    # Raw 데이터 JSON 파일로 저장
-    json_raw_path = os.path.join(data_dir, f"aws_resources_raw_{timestamp}.json")
-    with open(json_raw_path, "w", encoding="utf-8") as f:
-        json.dump(all_raw_data, f, ensure_ascii=False, indent=2, cls=DateTimeEncoder)
-    print(f"📄 Raw JSON 파일 생성 완료: {json_raw_path}")
+    csv_path = os.path.join(output_dir, "aws_resources.csv")
+    csv_rows = _build_csv_rows(all_filtered_data)
+    csv_df = pd.DataFrame(csv_rows)
+    if csv_df.empty:
+        csv_df = pd.DataFrame(columns=["Region", "ResourceType"])
+    csv_df.to_csv(csv_path, index=False)
+    print(f"📄 CSV 파일 생성 완료: {csv_path}")
 
-    # Filtered 데이터 JSON 파일로 저장
-    json_filtered_path = os.path.join(
-        data_dir, f"aws_resources_filtered_{timestamp}.json"
-    )
-    with open(json_filtered_path, "w", encoding="utf-8") as f:
-        json.dump(
-            all_filtered_data, f, ensure_ascii=False, indent=2, cls=DateTimeEncoder
-        )
-    print(f"📄 Filtered JSON 파일 생성 완료: {json_filtered_path}")
+    json_path = os.path.join(output_dir, "aws_resources.json")
+    json_payload = {
+        "metadata": {
+            "generatedAt": datetime.now(timezone.utc),
+            "timestamp": timestamp,
+            "regions": regions,
+            "resources": sorted(selected_resources),
+        },
+        "raw": all_raw_data,
+        "filtered": all_filtered_data,
+    }
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(json_payload, f, ensure_ascii=False, indent=2, cls=DateTimeEncoder)
+    print(f"📄 JSON 파일 생성 완료: {json_path}")
 
     # 요약 정보 출력
     print("\n✅ AWS 리소스 조회 완료!")

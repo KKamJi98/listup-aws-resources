@@ -14,8 +14,9 @@ AWS 리소스를 나열하고 정리하는 스크립트입니다. 특정 AWS 계
 ## 기능
 
 - **27개 AWS 리소스** 지원 (EKS, EC2, S3, RDS, DynamoDB, Route53, EIP, Internet Gateway, Security Group 등)
-- 조회된 결과는 **Excel 및 JSON** 형식으로 저장
+- 조회된 결과는 **Excel, CSV, JSON** 형식으로 저장
 - **Security Group** 리소스에서 0.0.0.0/0 또는 ::/0 AnyOpen된 Inbound Rule을 가진 항목은 '⚠️ YES'로 표시
+- **Security Group 사용 리소스 추적**: 연결된 ENI, 로드 밸런서, RDS, 서버리스 리소스를 함께 제공
 - **IPv6 범위, Prefix List ID, 보안 그룹 참조** 등 모든 유형의 보안 그룹 규칙을 완전히 지원
 - **SES Identity** 리소스에서 이메일 자격 증명의 확인 상태, DKIM 상태, 알림 설정 등을 확인
 - 강력한 **에러 처리**와 **타입 힌트**로 안정성과 가독성을 보장
@@ -64,9 +65,10 @@ AWS 리소스를 나열하고 정리하는 스크립트입니다. 특정 AWS 계
 ```shell
 listup_aws_resources/
 ├── data/
-│   ├── aws_resources_{timestamp}.xlsx
-│   ├── aws_resources_raw_{timestamp}.json
-│   └── aws_resources_filtered_{timestamp}.json
+│   └── YYYYMMDD_HHmmss/
+│       ├── aws_resources.xlsx
+│       ├── aws_resources.csv
+│       └── aws_resources.json
 ├── resources/
 │   ├── amis.py
 │   ├── auto_scaling_groups.py
@@ -219,12 +221,45 @@ uv run isort .
 uv run pytest -v && uv run isort --check-only . && uv run black --check .
 ```
 
+### 실행 예시
+
+```bash
+python listup_aws_resources.py
+
+🚀 AWS 리소스 조회 스크립트 시작
+==================================================
+🌍 조회 리전: ap-northeast-2
+📋 모든 리소스를 조회합니다.
+
+=== Collecting resources in region: ap-northeast-2 ===
+  🖥️  EC2 조회 중...
+  🌐 VPC 조회 중...
+  ... (중략)
+
+🪣 S3 Buckets (글로벌) 조회 중...
+🚀 Global Accelerator (글로벌) 조회 중...
+🌐 Route53 HostedZones (글로벌) 조회 중...
+
+📊 Excel 파일 생성 완료: ./data/20251002_112348/aws_resources.xlsx
+📄 CSV 파일 생성 완료: ./data/20251002_112348/aws_resources.csv
+📄 JSON 파일 생성 완료: ./data/20251002_112348/aws_resources.json
+
+✅ AWS 리소스 조회 완료!
+🌍 조회된 리전: ap-northeast-2
+📋 모든 리소스가 조회되었습니다.
+  📍 ap-northeast-2: 47개 리소스
+  🌐 S3: 2개 리소스
+  🌐 Route53: 1개 리소스
+📊 총 조회된 리소스: 50개
+```
+
 ## 결과물
 
 ### 전체 리소스 조회 결과
-- **Excel 파일**: `aws_resources_{timestamp}.xlsx` - 가공된 데이터 (읽기 쉬운 형태로 변환)
-- **Raw JSON 파일**: `aws_resources_raw_{timestamp}.json` - AWS API에서 받은 원본 데이터 그대로
-- **Filtered JSON 파일**: `aws_resources_filtered_{timestamp}.json` - 가공되고 필터링된 데이터 (Excel과 동일한 내용)
+- **출력 디렉터리**: `./data/YYYYMMDD_HHmmss/` (요청마다 새 폴더 생성)
+- **Excel 파일**: `aws_resources.xlsx` - 시트별로 정리된 가공 데이터
+- **CSV 파일**: `aws_resources.csv` - 리전, 리소스 유형, 주요 속성을 한 시트로 평탄화
+- **JSON 파일**: `aws_resources.json` - 원본(raw) 및 필터링(filtered) 데이터를 모두 포함하고 실행 메타데이터를 함께 저장
 
 ### Security Groups 전용 조회 결과
 Security Groups만 조회할 때도 동일한 파일 형식으로 저장되며, 추가로 상세한 보안 분석 결과가 콘솔에 출력됩니다:
@@ -243,6 +278,7 @@ Security Groups만 조회할 때도 동일한 파일 형식으로 저장되며, 
 ### Security Groups 모듈
 - IPv4 (0.0.0.0/0) 및 IPv6 (::/0) AnyOpen 규칙 감지
 - IPv6 범위, Prefix List ID, 보안 그룹 참조 완전 지원
+- ENI, 로드 밸런서, RDS, 서버리스 등 SG를 사용하는 리소스를 추적하고 `AttachedResources`, `AttachedResourceCount` 컬럼으로 제공
 - 향상된 에러 처리 및 타입 힌트
 - 포괄적인 테스트 커버리지
 
