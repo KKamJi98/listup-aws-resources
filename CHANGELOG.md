@@ -9,22 +9,16 @@
 * **ec2:** Add Security Group information to EC2 instances ([b597b4c](https://github.com/KKamJi98/listup-aws-resources/commit/b597b4c73971cbe4ed72489b493ff6808a59de81))
 * **security:** Add security group rules module and improve file generation ([9f5581e](https://github.com/KKamJi98/listup-aws-resources/commit/9f5581ed8f612dcdce6ebaa854e751ba70ec95ba))
 * Track security group usage and expand outputs ([b5c88e2](https://github.com/KKamJi98/listup-aws-resources/commit/b5c88e219795ccfb653cc6bc9f865a90fbf9b2a7))
+* **security-groups:** Track attached resources and expose usage counts
+* **cli:** Export results to timestamped directories with Excel, CSV, and JSON outputs
+* **cli:** Add CSV flattening helper for filtered data
 
 
 ### Documentation
 
 * Tidy changelog entries ([9bd964a](https://github.com/KKamJi98/listup-aws-resources/commit/9bd964aa0fdfb3f4b47e3eb9f1b9c0c85ff31d96))
-
-## [Unreleased]
-
-### Features
-- **security-groups:** Track attached resources and expose usage counts
-- **cli:** Export results to timestamped directories with Excel, CSV, and JSON outputs
-- **cli:** Add CSV flattening helper for filtered data
-
-### Documentation
-- **README:** Document new output layout and add full execution example
-- **AGENTS:** Reflect Security Group usage tracking and multi-format exports
+* **README:** Document new output layout and add full execution example
+* **AGENTS:** Reflect Security Group usage tracking and multi-format exports
 
 ## [1.2.0](https://github.com/KKamJi98/listup_aws_resources/compare/v1.1.0...v1.2.0) (2025-07-21)
 
