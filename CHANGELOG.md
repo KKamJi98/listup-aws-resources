@@ -3,21 +3,13 @@
 ## [Unreleased]
 
 ### Features
-- **security-groups:** Add comprehensive IPv6 and prefix list support for security group rules
-- **security-groups:** Improve AnyOpen detection to include both IPv4 (0.0.0.0/0) and IPv6 (::/0) ranges
-- **ec2:** Add type hints and improved error handling to EC2 module
-- **s3:** Add type hints and improved error handling to S3 buckets module
-- **tests:** Add comprehensive test coverage for security groups, EC2, and S3 modules
-- **utils:** Add __init__.py to utils module for better package structure
-
-### Bug Fixes
-- **tests:** Fix import issues in test modules by adding proper sys.path configuration
-- **security-groups:** Fix missing support for IPv6 ranges and prefix list IDs in rule processing
-- **datetime:** Improve datetime formatting consistency across all modules
+- **security-groups:** Track attached resources and expose usage counts
+- **cli:** Export results to timestamped directories with Excel, CSV, and JSON outputs
+- **cli:** Add CSV flattening helper for filtered data
 
 ### Documentation
-- **README:** Update README with comprehensive testing and development information
-- **README:** Add detailed information about Security Groups IPv6 and prefix list support
+- **README:** Document new output layout and add full execution example
+- **AGENTS:** Reflect Security Group usage tracking and multi-format exports
 
 ## [1.2.0](https://github.com/KKamJi98/listup_aws_resources/compare/v1.1.0...v1.2.0) (2025-07-21)
 
@@ -32,10 +24,6 @@
 ### Documentation
 
 * update README and streamline package management ([08c64b6](https://github.com/KKamJi98/listup_aws_resources/commit/08c64b6d3676f5f2178a908dd658a2e9d5d51abb))
-
-* **utils:** Add datetime_format utility for standardizing datetime formatting
-* **ses:** Improve SES identity module with datetime formatting and add tests
-* **main:** Add SES identity resource collection to main script
 
 ## [1.1.0](https://github.com/KKamJi98/listup_aws_resources/compare/v1.0.0...v1.1.0) (2025-07-02)
 
