@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/KKamJi98/listup-aws-resources/compare/v1.3.0...v1.3.1) (2025-10-02)
+
+
+### Documentation
+
+* Update changelog entries ([651e0be](https://github.com/KKamJi98/listup-aws-resources/commit/651e0be099577e2fb1a83813b04c968b966aecb1))
+
 ## [1.3.0](https://github.com/KKamJi98/listup-aws-resources/compare/v1.2.0...v1.3.0) (2025-10-02)
 
 
